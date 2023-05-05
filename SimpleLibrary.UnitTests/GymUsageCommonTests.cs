@@ -22,7 +22,7 @@ namespace SimpleLibrary.UnitTests
         }
 
         [Fact]
-        public void FillMissingDays_Test()
+        public void FillMissingDays_InitEmpty_FillAll()
         {
             // Arrange
             List<UserGymUsageDailyReportDTO> dailyReport = new();
@@ -34,14 +34,91 @@ namespace SimpleLibrary.UnitTests
                 startDate, endDate);
 
             // Assert
-            Assert.Equal(dailyReport.Count, 31);
+            Assert.Equal(31, dailyReport.Count);
         }
 
         [Fact]
-        public void ProcessReportDetailAndCalcTotalGymUsage_Test()
+        public void ProcessReportDetailAndCalcTotalGymUsage_NoUsageWithPeriod_ZeroUsage()
         {
+            // Arrange
+            DateTime startDate = new DateTime(2021, 1, 1);
+            DateTime endDate = new DateTime(2021, 1, 1);
+            DateTime? latestCreatedTime = null;
+            List<GymPermit> empGymPermits = new()
+            {
+                new GymPermit
+                {
+                    PermitId = Guid.NewGuid(),
+                    ValidTime = new DateTime(2020, 1, 1),
+                    InvalidTime = new DateTime(2021, 12, 31),
+                }
+            };
+            List<UserGymUsageDailyReportDTO> dailyReport = new()
+            {
+                new UserGymUsageDailyReportDTO
+                {
+                    Date = new DateTime(2021, 1, 1),
+                    GymIdNumber = empGymPermits[0].PermitId.ToString(),
+                    SpeedGateRecordTime = new DateTime(2021, 1, 1, 8, 0, 0),
+                }
+            };
+            List<HolidayMakeupDay> specialDateList = new();
+            List<GymUsageReportDetailViewModel> detailList;
 
+            // Act
+            decimal result = GymUsageCommon.ProcessReportDetailAndCalcTotalGymUsage(
+                startDate, endDate, latestCreatedTime,
+                empGymPermits, dailyReport, specialDateList,
+                out detailList);
+
+            // Assert
+            Assert.Equal(0, result);
         }
 
+        [Fact]
+        public void ProcessReportDetailAndCalcTotalGymUsage_UseEverydayWithPeriod_100Usage()
+        {
+            // Arrange
+            DateTime startDate = new DateTime(2021, 1, 1);
+            DateTime endDate = new DateTime(2021, 1, 2);
+            DateTime? latestCreatedTime = null;
+            List<GymPermit> empGymPermits = new()
+            {
+                new GymPermit
+                {
+                    PermitId = Guid.NewGuid(),
+                    ValidTime = new DateTime(2020, 1, 1),
+                    InvalidTime = new DateTime(2021, 12, 31),
+                }
+            };
+            List<UserGymUsageDailyReportDTO> dailyReport = new()
+            {
+                new UserGymUsageDailyReportDTO
+                {
+                    Date = new DateTime(2021, 1, 1),
+                    GymIdNumber = empGymPermits[0].PermitId.ToString(),
+                    GymRecordTime = new DateTime(2021, 1, 1, 18, 0, 0),
+                    SpeedGateRecordTime = new DateTime(2021, 1, 1, 8, 0, 0),
+                },
+                new UserGymUsageDailyReportDTO
+                {
+                    Date = new DateTime(2021, 1, 1),
+                    GymIdNumber = empGymPermits[0].PermitId.ToString(),
+                    GymRecordTime = new DateTime(2021, 1, 2, 18, 0, 0),
+                    SpeedGateRecordTime = new DateTime(2021, 1, 1, 8, 0, 0),
+                }
+            };
+            List<HolidayMakeupDay> specialDateList = new();
+            List<GymUsageReportDetailViewModel> detailList;
+
+            // Act
+            decimal result = GymUsageCommon.ProcessReportDetailAndCalcTotalGymUsage(
+                startDate, endDate, latestCreatedTime,
+                empGymPermits, dailyReport, specialDateList,
+                out detailList);
+
+            // Assert
+            Assert.Equal(100, result);
+        }
     }
 }
